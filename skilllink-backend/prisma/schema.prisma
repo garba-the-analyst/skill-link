@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String                 @id @default(uuid())
+  displayName        String
+  email              String                 @unique
+  passwordHash       String
+  profileType        String                 @default("INDIVIDUAL")
+  role               String                 @default("MEMBER")
+  bio                String?
+  isPaidProvider     Boolean                @default(false)
+  isVolunteer        Boolean                @default(true)
+  identityStatus     String                 @default("PENDING")
+  professionalStatus String                 @default("PENDING") // Added this
+  totalLoggedHours   Int                    @default(0)
+  accumulatedPoints  Int                    @default(0)
+  availableCents     Int                    @default(0) // Withdrawable balance from completed, released bookings
+  totalEarnedCents   Int                    @default(0) // Lifetime earnings, net of platform fee
+  avatarUrl          String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  serviceListings    ServiceListing[]
+  bookings           Booking[]              @relation("StudentBookings")
+  providerBookings   Booking[]              @relation("ProviderBookings")
+  opportunities      VolunteerOpportunity[] @relation("CreatedOpportunities")
+  hourLogs           VolunteerHourLog[]     @relation("VolunteerLogs")
+  verifiedLogs       VolunteerHourLog[]     @relation("AdminVerifier")
+  certificates       VolunteerCertificate[]
+  reviews            Review[]
+  refreshTokens      RefreshToken[]
+  applications       VolunteerApplication[]
+}
+
+model ServiceListing {
+  id              String         @id @default(uuid())
+  title           String
+  bio             String
+  hourlyRateCents Int
+  providerId      String
+  provider        User           @relation(fields: [providerId], references: [id])
+  bookings        Booking[]
+  skills          ListingSkill[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model ListingSkill {
+  id               String         @id @default(uuid())
+  name             String
+  serviceListingId String
+  serviceListing   ServiceListing @relation(fields: [serviceListingId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id              String         @id @default(uuid())
+  listingId       String
+  listing         ServiceListing @relation(fields: [listingId], references: [id])
+  studentId       String
+  student         User           @relation("StudentBookings", fields: [studentId], references: [id])
+  providerId      String         
+  provider        User           @relation("ProviderBookings", fields: [providerId], references: [id])
+  amountCents     Int
+  escrowFeeCents  Int            @default(0)
+  // Lifecycle: LOCKED -> IN_PROGRESS -> RELEASE_READY -> COMPLETED
+  status          String         @default("LOCKED")
+  otpCode         String?
+  otpRequired     Boolean        @default(true)
+  scheduledFor    DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model VolunteerOpportunity {
+  id            String                 @id @default(uuid())
+  title         String
+  description   String
+  category      String
+  location      String
+  requiredHours Int
+  status        String                 @default("ACTIVE")
+  creatorId     String
+  creator       User                   @relation("CreatedOpportunities", fields: [creatorId], references: [id])
+  hourLogs      VolunteerHourLog[]
+  applications  VolunteerApplication[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+}
+
+model VolunteerHourLog {
+  id            String               @id @default(uuid())
+  opportunityId String
+  opportunity   VolunteerOpportunity @relation(fields: [opportunityId], references: [id])
+  volunteerId   String
+  volunteer     User                 @relation("VolunteerLogs", fields: [volunteerId], references: [id])
+  verifiedById  String?
+  verifier      User?                @relation("AdminVerifier", fields: [verifiedById], references: [id])
+  hoursLogged   Int                  
+  status        String               @default("PENDING")
+  isVerified    Boolean              @default(false)
+  verifiedAt    DateTime?            // Added this
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+}
+
+model VolunteerCertificate {
+  id               String   @id @default(uuid())
+  volunteerId      String
+  volunteer        User     @relation(fields: [volunteerId], references: [id])
+  issueHash        String   @unique
+  totalHoursSigned Int      @default(0)
+  issuedAt         DateTime @default(now())
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  rating      Int
+  comment     String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model VolunteerApplication {
+  id            String               @id @default(uuid())
+  opportunityId String
+  opportunity   VolunteerOpportunity @relation(fields: [opportunityId], references: [id])
+  volunteerId   String
+  volunteer     User                 @relation(fields: [volunteerId], references: [id])
+  status        String               @default("PENDING")
+  createdAt     DateTime             @default(now())
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+}

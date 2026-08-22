@@ -1,0 +1,63 @@
+# render.yaml — Render Blueprint for SkillLink
+#
+# Lets Render provision all three pieces of this app in one pass:
+# a Postgres database, the NestJS API, and the static Vue frontend.
+#
+# To use it: push this repo to GitHub, then in the Render Dashboard choose
+# New > Blueprint and point it at the repo. Render reads this file and
+# proposes all three resources below for you to confirm.
+#
+# Full syntax reference: https://render.com/docs/blueprint-spec
+#
+# NOTE: service names must be globally unique across all of Render, not
+# just your account. If "skilllink-backend" or "skilllink-frontend" is
+# already taken, Render will suggest a variant name when you deploy — if
+# that happens, update CORS_ORIGIN and VITE_API_URL below to match the
+# actual assigned URLs (see the README's "Deploying to Render" section).
+
+databases:
+  - name: skilllink-db
+    plan: free
+    databaseName: skilllink
+    user: skilllink
+
+services:
+  - type: web
+    name: skilllink-backend
+    runtime: node
+    plan: free
+    rootDir: skilllink-backend
+    buildCommand: npm install && npm run build && npx prisma migrate deploy
+    startCommand: npm run start:prod
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: skilllink-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CERT_SIGNING_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://skilllink-frontend.onrender.com
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+
+  - type: web
+    name: skilllink-frontend
+    runtime: static
+    rootDir: skilllink-frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://skilllink-backend.onrender.com
+    routes:
+      # Vue Router uses browser history mode — every path needs to serve
+      # index.html so client-side routing can take over.
+      - type: rewrite
+        source: /*
+        destination: /index.html

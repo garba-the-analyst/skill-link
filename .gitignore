@@ -1,0 +1,24 @@
+# This root .gitignore covers files that can appear at the repo root.
+# skilllink-backend/ and skilllink-frontend/ each have their own
+# .gitignore for their build output and dependencies.
+
+# Dependencies
+node_modules/
+
+# Environment variables — never commit real secrets
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  /* ==========================================================================
+     Colors — "Kinetic Cipher" Palette
+     ========================================================================== */
+  --color-background: #0b1326;
+  --color-on-background: #dae2fd;
+  --color-surface: #0b1326;
+  --color-surface-dim: #0b1326;
+  --color-surface-bright: #31394d;
+  
+  --color-surface-container-lowest: #060e20;
+  --color-surface-container-low: #131b2e;
+  --color-surface-container: #171f33;
+  --color-surface-container-high: #222a3d;
+  --color-surface-container-highest: #2d3449;
+  
+  --color-surface-variant: #2d3449;
+  --color-on-surface: #dae2fd;
+  --color-on-surface-variant: #c7c4d7;
+  --color-inverse-surface: #dae2fd;
+  --color-inverse-on-surface: #283044;
+
+  --color-outline: #908fa0;
+  --color-outline-variant: #464554;
+
+  /* Primary Brand Color: Ice Blue / Purple Accent */
+  --color-primary: #c0c1ff;
+  --color-on-primary: #1000a9;
+  --color-primary-container: #8083ff;
+  --color-on-primary-container: #0d0096;
+  --color-inverse-primary: #494bd6;
+  --color-surface-tint: #c0c1ff;
+
+  /* Secondary Brand Color: Emerald Mint (Signifies Verified State / Escrow Safety) */
+  --color-secondary: #4edea3;
+  --color-on-secondary: #003824;
+  --color-secondary-container: #00a572;
+  --color-on-secondary-container: #00311f;
+
+  /* Tertiary Brand Color: Clean Greyscale Slate */
+  --color-tertiary: #c4c7c9;
+  --color-on-tertiary: #2d3133;
+  --color-tertiary-container: #8e9193;
+  --color-on-tertiary-container: #272a2c;
+
+  /* Error and Alert Indicators */
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+
+  /* ==========================================================================
+     Typography Standards
+     ========================================================================== */
+  --font-display-lg: "Inter", sans-serif;
+  --font-headline-md: "Inter", sans-serif;
+  --font-body-base: "Inter", sans-serif;
+  --font-body-sm: "Inter", sans-serif;
+  --font-label-caps: "Geist", monospace;
+  --font-mono-data: "Geist", monospace;
+
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 56px;
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 32px;
+  --text-body-base: 16px;
+  --text-body-base--line-height: 24px;
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 20px;
+  --text-label-caps: 12px;
+  --text-label-caps--line-height: 16px;
+  --text-mono-data: 14px;
+  --text-mono-data--line-height: 20px;
+
+  /* ==========================================================================
+     Structural Border Radii
+     ========================================================================== */
+  --radius: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+}
+
+/* ==========================================================================
+   Global Base Elements
+   ========================================================================== */
+body {
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: var(--font-body-base);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* 
+   Material Symbols Configuration.
+   Ensures Google's icon typography library displays as pure geometric 
+   glyphs instead of literal text strings.
+*/
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
