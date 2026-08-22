@@ -145,10 +145,17 @@ skill-link/
 - Node.js 20+ and npm
 - A PostgreSQL database. The easiest way to get one locally is Docker:
   ```bash
-  docker run --name skilllink-postgres -e POSTGRES_USER=skilllink -e POSTGRES_PASSWORD=skilllink -e POSTGRES_DB=skilllink -p 5432:5432 -d postgres
+  docker run --name skilllink-postgres -e POSTGRES_USER=skilllink -e POSTGRES_PASSWORD=skilllink -e POSTGRES_DB=skilllink -p 5433:5432 -d postgres
   ```
-  This matches the `DATABASE_URL` already in `.env` — no further config needed
+  This uses host port **5433** (mapped to Postgres's normal 5432 inside the
+  container) rather than 5432 directly, since a lot of machines already
+  have something bound to 5432 — a system Postgres install, or another
+  project's container — and this way you don't need to check first. This
+  matches the `DATABASE_URL` already in `.env` — no further config needed
   if you use it as-is.
+  If you already have your own PostgreSQL running locally and know its
+  credentials, you can skip Docker entirely — just create a `skilllink`
+  database and point `DATABASE_URL` in `.env` at it instead.
 
 ### 1. Backend
 ```bash
@@ -192,6 +199,17 @@ clearly in `schema.prisma`.** The generated Prisma Client
 happens if `prisma migrate dev` never successfully completed (it
 regenerates the client as a side effect) or if you edited `schema.prisma`
 without regenerating afterward. Fix: `npm run db:generate`.
+
+**`P1000: Authentication failed against database server`.** Unlike a
+"connection refused" error, this means *something* answered on that host
+and port — just not with the credentials in `DATABASE_URL`. Run
+`docker ps -a` and check whether `skilllink-postgres` is actually there
+and running. If it isn't, something else (a system-level Postgres
+install, or another project's container) already owns that port, and
+`docker run` either was never started or is fighting over the same port.
+Easiest fix: run the container on a different host port
+(`-p 5433:5432` instead of `-p 5432:5432`) and update the port in
+`DATABASE_URL` in `.env` to match.
 
 ---
 
