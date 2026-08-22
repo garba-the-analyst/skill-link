@@ -154,7 +154,8 @@ skill-link/
 ```bash
 cd skilllink-backend
 npm install
-npm run db:migrate     # creates the database tables
+npm run db:migrate     # creates the database tables (also generates the Prisma Client)
+npm run db:generate    # regenerates the Prisma Client — safe to re-run any time the schema changes
 npm run db:seed        # loads the 20-user demo dataset (see below)
 npm run start:dev      # http://localhost:3000
 ```
@@ -176,6 +177,21 @@ local Postgres URL, etc.) so the steps above work with zero configuration.
 `.env.example` in each folder documents every variable if you need to
 change something. **Neither `.env` file is committed to git** — see each
 folder's `.gitignore`.
+
+### Troubleshooting
+
+**`Error: Environment variable not found: DATABASE_URL` when running a
+`prisma`/`db:*` command.** The Prisma CLI looks for `.env` in whatever
+directory you run the command from — make sure you're inside
+`skilllink-backend` (not the repo root) before running `npm run db:migrate`,
+`npm run db:seed`, etc.
+
+**TypeScript errors about a field "not existing" on a Prisma model that's
+clearly in `schema.prisma`.** The generated Prisma Client
+(`node_modules/.prisma/client`) is out of sync with the schema — this
+happens if `prisma migrate dev` never successfully completed (it
+regenerates the client as a side effect) or if you edited `schema.prisma`
+without regenerating afterward. Fix: `npm run db:generate`.
 
 ---
 
