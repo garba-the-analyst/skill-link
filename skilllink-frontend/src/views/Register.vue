@@ -23,7 +23,7 @@ async function handleRegister() {
     const { data } = await client.post('/auth/register', {
       displayName: displayName.value,
       email: email.value,
-      passwordHash: password.value,
+      password: password.value,
       profileType: 'INDIVIDUAL',
       isPaidProvider: isPaidProvider.value,
       isVolunteer: isVolunteer.value

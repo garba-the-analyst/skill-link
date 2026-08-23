@@ -211,6 +211,17 @@ Easiest fix: run the container on a different host port
 (`-p 5433:5432` instead of `-p 5432:5432`) and update the port in
 `DATABASE_URL` in `.env` to match.
 
+**Render deploy fails with `Cannot find module '.../dist/main'` even
+though the build logs say "Build successful".** `nest build` compiles
+whatever `.ts` files it finds under the backend folder unless told
+otherwise. Without a `prisma/` exclusion, `prisma/seed.ts` — a sibling of
+`src/`, not part of the Nest app — gets swept into the same compilation,
+so TypeScript nests the output one level deeper (`dist/src/main.js`)
+instead of `dist/main.js`, which is what `start:prod` (`node dist/main`)
+expects. Fixed in `tsconfig.build.json` by excluding `prisma` and pinning
+`rootDir` to `./src`; only relevant if you add more root-level `.ts`
+files later.
+
 ---
 
 ## Demo accounts & seed data

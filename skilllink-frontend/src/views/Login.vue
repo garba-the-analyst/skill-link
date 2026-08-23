@@ -19,7 +19,7 @@ async function handleLogin() {
   try {
     const { data } = await client.post('/auth/login', {
       email: email.value,
-      passwordHash: password.value // Handled as plaintext here, hashed securely on the backend
+      password: password.value // Sent as plaintext over HTTPS, hashed and compared on the backend
     });
     
     auth.setSession(data.accessToken, data.user);
