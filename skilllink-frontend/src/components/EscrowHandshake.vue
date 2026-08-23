@@ -81,9 +81,9 @@ function stageIndex(status: string) {
 
       <div class="flex gap-2">
         <input
-          v-for="(digit, index) in otpInputs"
+          v-for="index in otpInputs.length"
           :key="index"
-          v-model="otpInputs[index]"
+          v-model="otpInputs[index - 1]"
           maxlength="1"
           type="text"
           inputmode="numeric"
