@@ -161,7 +161,7 @@ skill-link/
 ```bash
 cd skilllink-backend
 npm install
-npm run db:migrate     # creates the database tables (also generates the Prisma Client)
+npm run db:push         # creates/updates the database tables to match schema.prisma
 npm run db:generate    # regenerates the Prisma Client — safe to re-run any time the schema changes
 npm run db:seed        # loads the 20-user demo dataset (see below)
 npm run start:dev      # http://localhost:3000
@@ -190,15 +190,15 @@ folder's `.gitignore`.
 **`Error: Environment variable not found: DATABASE_URL` when running a
 `prisma`/`db:*` command.** The Prisma CLI looks for `.env` in whatever
 directory you run the command from — make sure you're inside
-`skilllink-backend` (not the repo root) before running `npm run db:migrate`,
+`skilllink-backend` (not the repo root) before running `npm run db:push`,
 `npm run db:seed`, etc.
 
 **TypeScript errors about a field "not existing" on a Prisma model that's
 clearly in `schema.prisma`.** The generated Prisma Client
 (`node_modules/.prisma/client`) is out of sync with the schema — this
-happens if `prisma migrate dev` never successfully completed (it
-regenerates the client as a side effect) or if you edited `schema.prisma`
-without regenerating afterward. Fix: `npm run db:generate`.
+happens if `prisma db push` never successfully completed (it regenerates
+the client as a side effect) or if you edited `schema.prisma` without
+regenerating afterward. Fix: `npm run db:generate`.
 
 **`P1000: Authentication failed against database server`.** Unlike a
 "connection refused" error, this means *something* answered on that host
@@ -221,6 +221,18 @@ instead of `dist/main.js`, which is what `start:prod` (`node dist/main`)
 expects. Fixed in `tsconfig.build.json` by excluding `prisma` and pinning
 `rootDir` to `./src`; only relevant if you add more root-level `.ts`
 files later.
+
+**Why there's no `prisma/migrations` folder in this repo.** This project
+uses `prisma db push` instead of `prisma migrate dev`/`deploy` — it syncs
+the database directly to whatever's in `schema.prisma`, with no migration
+history file required. That's a deliberate choice: a formal migration
+history is genuinely useful on a team with a production database, but for
+a single-developer project redeploying to a fresh or disposable database,
+it's one more thing that can end up out of sync between your machine and
+git. If you'd rather have real migrations (e.g. for a future team
+project), swap `db:push` back to `prisma migrate dev` locally and
+`prisma migrate deploy` in `render.yaml`'s `buildCommand` — just make sure
+whatever migration files that generates actually get committed.
 
 ---
 
@@ -306,6 +318,16 @@ things worth knowing going in:
   it to keep running long-term, you'll want to upgrade that one piece
   later.
 
+**If your Render services already exist** (you've deployed before and are
+pushing an update rather than starting fresh): `render.yaml` only
+auto-applies to services Render created *from* a Blueprint, and even then
+some fields require confirming a sync in the dashboard. The reliable way
+to make sure a build/start command change actually takes effect: open the
+`skilllink-backend` service → **Settings** → confirm the **Build Command**
+matches what's in `render.yaml` (currently
+`npm install && npm run build && npx prisma db push --accept-data-loss`)
+and update it by hand if it doesn't, then save (which redeploys).
+
 ### Option A — Blueprint (recommended, does all 3 services at once)
 
 1. Push this repo to GitHub (see the next section if you haven't yet).
@@ -370,7 +392,7 @@ If you'd rather see each piece explicitly, or the Blueprint hits a snag:
    *Internal Database URL*.
 2. **Backend**: New > Web Service, connect this repo, set **Root
    Directory** to `skilllink-backend`. Build command:
-   `npm install && npm run build && npx prisma migrate deploy`. Start
+   `npm install && npm run build && npx prisma db push --accept-data-loss`. Start
    command: `npm run start:prod`. Add environment variables: `DATABASE_URL`
    (the Internal Database URL from step 1), `JWT_SECRET` and
    `CERT_SIGNING_SECRET` (any long random strings), and `CORS_ORIGIN` (fill

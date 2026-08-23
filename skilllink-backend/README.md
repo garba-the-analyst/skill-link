@@ -10,7 +10,7 @@ deploy this alongside the frontend.
 
 ```bash
 npm install
-npm run db:migrate    # create tables
+npm run db:push       # create/update tables to match schema.prisma
 npm run db:seed       # load demo data (20 users, listings, bookings, …)
 npm run start:dev     # http://localhost:3000
 ```
