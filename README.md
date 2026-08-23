@@ -329,12 +329,38 @@ things worth knowing going in:
 6. **Seed the database once**, after the first successful deploy — the
    build step deliberately does *not* run the seed script automatically,
    since it wipes existing data and you don't want that happening on every
-   future push. The simplest way: copy the Postgres instance's *External
-   Database URL* from the Render dashboard, put it in
-   `skilllink-backend/.env` locally as `DATABASE_URL`, then run
-   `npm run db:seed` from your machine. (Alternatively, use the backend
-   service's **Shell** tab in the Render dashboard to run
-   `npm run db:seed` directly on the deployed instance.)
+   future push.
+
+   **Render's free web services don't include Shell or One-Off Jobs**
+   (both require a paid plan), and free Postgres instances don't
+   consistently expose an external connection either — so `npm run db:seed`
+   from your own machine may not be an option. This repo includes a
+   fallback for exactly that case: a protected HTTP endpoint that runs the
+   same seed logic from inside the already-running app.
+
+   1. On the `skilllink-backend` service, open **Environment** and add
+      `SEED_TRIGGER_SECRET` set to any long random string (this is already
+      in `render.yaml` with `generateValue: true` for fresh Blueprint
+      deploys, but if your services already existed before that was added,
+      set it manually here instead — Render will redeploy automatically).
+   2. Once that's live, trigger the seed:
+      ```bash
+      curl -X POST https://skilllink-backend.onrender.com/ops/seed \
+        -H "x-seed-secret: <the value you just set>"
+      ```
+      (Or any HTTP client — Postman, Insomnia, even a browser extension —
+      as long as it can send a POST with that header.) The response includes
+      the same summary `npm run db:seed` prints locally, including the demo
+      login list and the current release-ready booking's OTP.
+   3. If your Postgres plan *does* expose an external connection (check the
+      database's page in the Render dashboard, under **Connect**), you can
+      use that instead: put it in `skilllink-backend/.env` locally as
+      `DATABASE_URL` and run `npm run db:seed` from your machine, the same
+      as local dev. Either path reaches the same database — use whichever
+      is available to you.
+
+   Re-run either method any time you want to reset the demo data — it
+   always wipes and rebuilds from scratch, so it's safe to repeat.
 
 ### Option B — Manual, one service at a time
 

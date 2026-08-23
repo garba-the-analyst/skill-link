@@ -41,6 +41,8 @@ services:
         generateValue: true
       - key: CORS_ORIGIN
         value: https://skilllink-frontend.onrender.com
+      - key: SEED_TRIGGER_SECRET
+        generateValue: true
       - key: SEED_ADMIN_EMAIL
         sync: false
       - key: SEED_ADMIN_PASSWORD
