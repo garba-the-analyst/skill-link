@@ -1,0 +1,8 @@
+{
+  "name": "skill-link",
+  "private": true,
+  "description": "Root convenience scripts. The actual app lives in skilllink-backend/ and skilllink-frontend/, each with their own package.json.",
+  "scripts": {
+    "dev": "bash dev.sh"
+  }
+}

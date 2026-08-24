@@ -118,6 +118,8 @@ that.
 ```
 skill-link/
 ├── render.yaml                  # Render Blueprint (see Deploying to Render)
+├── dev.sh                       # Starts Postgres + backend + frontend together (npm run dev)
+├── package.json                 # Just the "dev" script above — no dependencies of its own
 ├── skilllink-backend/
 │   ├── prisma/
 │   │   ├── schema.prisma        # Data model (User, ServiceListing, Booking, …)
@@ -176,6 +178,20 @@ npm run dev             # http://localhost:5173
 
 Open `http://localhost:5173` — the frontend is already configured
 (`skilllink-frontend/.env`) to talk to the backend on `localhost:3000`.
+
+### Shortcut: start everything at once
+
+Once you've run `npm install` in both folders and done the one-time
+`db:push`/`db:seed` setup above, `dev.sh` at the repo root starts the local
+Postgres container (creating it if needed), the backend, and the frontend
+together, with labeled output so you can tell which is which:
+```bash
+npm run dev        # or: bash dev.sh
+```
+Ctrl+C stops both dev servers. This is just a convenience wrapper around
+the same two `npm run` commands above — nothing it does is otherwise
+different from running them in separate terminals, so if it ever behaves
+oddly on your setup, falling back to two terminals always works.
 
 ### Environment variables
 Both `skilllink-backend/.env` and `skilllink-frontend/.env` are already
