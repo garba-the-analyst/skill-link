@@ -20,6 +20,7 @@ onMounted(async () => {
 
 // Helper function to format integer cents to standard currency format (₦)
 const formatMoney = (cents: number) => {
+  if (!Number.isFinite(cents)) return '₦—';
   return `₦${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 };
 </script>
@@ -74,7 +75,7 @@ const formatMoney = (cents: number) => {
             <div class="flex justify-between items-start">
               <div>
                 <h3 class="font-body-base font-bold text-on-surface">{{ listing.title }}</h3>
-                <p class="font-body-sm text-on-surface-variant mt-1">by {{ listing.provider?.displayName }}</p>
+                <p class="font-body-sm text-on-surface-variant mt-1">by {{ listing.provider?.displayName || '—' }}</p>
               </div>
               <div class="text-right">
                 <span class="font-mono-data text-lg font-bold text-primary">{{ formatMoney(listing.hourlyRateCents) }}</span>
@@ -129,10 +130,10 @@ const formatMoney = (cents: number) => {
             <div class="flex justify-between items-start pl-2">
               <div>
                 <h3 class="font-body-base font-bold text-on-surface">{{ opp.title }}</h3>
-                <p class="font-body-sm text-on-surface-variant mt-1">Hosted by {{ opp.creator?.displayName }}</p>
+                <p class="font-body-sm text-on-surface-variant mt-1">Hosted by {{ opp.creator?.displayName || '—' }}</p>
               </div>
               <div class="text-right">
-                <span class="font-mono-data text-lg font-bold text-secondary">{{ opp.requiredHours }}</span>
+                <span class="font-mono-data text-lg font-bold text-secondary">{{ Number.isFinite(opp.requiredHours) ? opp.requiredHours : '—' }}</span>
                 <p class="font-label-caps text-on-surface-variant uppercase">Hours</p>
               </div>
             </div>

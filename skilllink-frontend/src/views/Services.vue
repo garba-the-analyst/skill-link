@@ -13,6 +13,7 @@ onMounted(async () => {
 });
 
 const formatMoney = (cents: number) => {
+  if (!Number.isFinite(cents)) return '₦—';
   return `₦${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 };
 
@@ -68,7 +69,7 @@ async function initiateBooking(listingId: string, title: string, hourlyRateCents
             </h3>
             <p class="font-body-sm text-on-surface-variant flex items-center gap-1">
               <span class="material-symbols-outlined text-[16px]">person</span>
-              {{ listing.provider?.displayName }}
+              {{ listing.provider?.displayName || '—' }}
             </p>
           </div>
           

@@ -117,11 +117,11 @@ async function submitHours(opportunityId: string) {
                 <h3 class="font-body-base font-bold text-on-surface text-xl">{{ opp.title }}</h3>
                 <p class="font-body-sm text-on-surface-variant mt-1 flex items-center gap-1">
                   <span class="material-symbols-outlined text-[16px]">corporate_fare</span>
-                  Hosted by {{ opp.creator?.displayName }}
+                  Hosted by {{ opp.creator?.displayName || '—' }}
                 </p>
               </div>
               <div class="text-right bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant">
-                <span class="font-mono-data text-2xl font-extrabold text-secondary">{{ opp.requiredHours }}</span>
+                <span class="font-mono-data text-2xl font-extrabold text-secondary">{{ Number.isFinite(opp.requiredHours) ? opp.requiredHours : '—' }}</span>
                 <p class="font-label-caps text-on-surface-variant uppercase mt-1">Hours</p>
               </div>
             </div>
