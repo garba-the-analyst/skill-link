@@ -42,7 +42,7 @@ services:
       - key: CERT_SIGNING_SECRET
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://skilllink-frontend.onrender.com
+        value: https://skilllink-frontend-pcxr.onrender.com
       - key: SEED_TRIGGER_SECRET
         generateValue: true
       - key: SEED_ADMIN_EMAIL
@@ -62,7 +62,7 @@ services:
       - key: NODE_VERSION
         value: 22.12.0
       - key: VITE_API_URL
-        value: https://skilllink-backend.onrender.com
+        value: https://skilllink-backend-ieag.onrender.com
     routes:
       # Vue Router uses browser history mode — every path needs to serve
       # index.html so client-side routing can take over.
