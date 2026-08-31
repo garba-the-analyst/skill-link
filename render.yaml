@@ -27,7 +27,7 @@ services:
     runtime: node
     plan: free
     rootDir: skilllink-backend
-    buildCommand: npm install && npx prisma generate && npm run build && npx prisma db push --accept-data-loss
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build && npx prisma db push --accept-data-loss
     startCommand: npm run start:prod
     healthCheckPath: /
     envVars:
@@ -56,7 +56,7 @@ services:
     name: skilllink-frontend
     runtime: static
     rootDir: skilllink-frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     staticPublishPath: dist
     envVars:
       - key: NODE_VERSION
