@@ -24,4 +24,9 @@ export class AdminController {
   getStats() {
     return this.adminService.getStats();
   }
+
+  @Get('analytics')
+  getAnalytics() {
+    return this.adminService.getAnalytics();
+  }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useAdminStore } from '../stores/admin';
@@ -12,8 +12,22 @@ const isLoading = ref(true);
 const loadError = ref('');
 const verifyingId = ref<string | null>(null);
 
-const formatMoney = (cents: number) => `₦${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+const formatMoney = (cents: number) => {
+  if (!Number.isFinite(cents)) return '₦—';
+  return `₦${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+};
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+
+const maxMonthGross = computed(() => {
+  const a = admin.analytics?.revenueByMonth;
+  if (!a?.length) return 1;
+  return Math.max(...a.map(r => r.grossCents), 1);
+});
+const maxProviderRevenue = computed(() => {
+  const t = admin.analytics?.topProviders;
+  if (!t?.length) return 1;
+  return Math.max(...t.map(p => p.revenueCents), 1);
+});
 
 const STATUS_LABELS: Record<string, string> = {
   LOCKED: 'Funds Locked',
@@ -92,6 +106,87 @@ async function handleVerify(logId: string) {
         <div class="bg-surface-container-highest p-5 rounded-2xl border border-outline-variant text-center">
           <p class="font-mono-data text-3xl font-extrabold" :class="admin.stats.pendingHourLogCount ? 'text-error' : 'text-secondary'">{{ admin.stats.pendingHourLogCount }}</p>
           <p class="font-label-caps text-on-surface-variant uppercase text-[10px] mt-1">Pending Reviews</p>
+        </div>
+      </section>
+
+      <!-- Analytics — transactions, activity, revenue -->
+      <section v-if="admin.analytics" class="flex flex-col gap-6">
+        <h2 class="font-headline-md text-2xl text-on-surface border-b border-outline-variant pb-2">Transactions & Analytics</h2>
+
+        <!-- Revenue cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-surface-container-high p-5 rounded-2xl border border-outline-variant">
+            <p class="font-label-caps text-on-surface-variant uppercase text-[10px]">Gross Volume (Completed)</p>
+            <p class="font-mono-data text-2xl font-extrabold text-primary mt-1">{{ formatMoney(admin.analytics.totalGrossCents) }}</p>
+            <p class="font-body-sm text-on-surface-variant text-xs mt-1">{{ admin.analytics.recentActivity.filter(a=>a.type==='booking' && a.status==='COMPLETED').length }} completed bookings</p>
+          </div>
+          <div class="bg-surface-container-high p-5 rounded-2xl border border-outline-variant">
+            <p class="font-label-caps text-on-surface-variant uppercase text-[10px]">Platform Fees (10%)</p>
+            <p class="font-mono-data text-2xl font-extrabold text-secondary mt-1">{{ formatMoney(admin.analytics.totalFeesCents) }}</p>
+            <p class="font-body-sm text-on-surface-variant text-xs mt-1">From completed bookings</p>
+          </div>
+          <div class="bg-surface-container-high p-5 rounded-2xl border border-outline-variant">
+            <p class="font-label-caps text-on-surface-variant uppercase text-[10px]">Net Payouts to Providers</p>
+            <p class="font-mono-data text-2xl font-extrabold text-on-surface mt-1">{{ formatMoney(admin.analytics.totalNetCents) }}</p>
+            <p class="font-body-sm text-on-surface-variant text-xs mt-1">Credited to availableCents</p>
+          </div>
+          <div class="bg-surface-container-high p-5 rounded-2xl border border-outline-variant">
+            <p class="font-label-caps text-on-surface-variant uppercase text-[10px]">Escrow Held (In-Flight)</p>
+            <p class="font-mono-data text-2xl font-extrabold text-error mt-1">{{ formatMoney(admin.analytics.escrowHeldCents) }}</p>
+            <p class="font-body-sm text-on-surface-variant text-xs mt-1">LOCKED / IN_PROGRESS / RELEASE_READY</p>
+          </div>
+        </div>
+
+        <!-- Bookings by status + hour stats -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="bg-surface-container-high p-5 rounded-2xl border border-outline-variant flex flex-col gap-3">
+            <h3 class="font-bold text-on-surface">Bookings by Status</h3>
+            <div v-for="(count, status) in admin.analytics.bookingsByStatus" :key="status" class="flex items-center justify-between">
+              <span class="font-label-caps text-on-surface-variant uppercase text-xs">{{ STATUS_LABELS[status] || status }}</span>
+              <span class="font-mono-data font-bold text-on-surface">{{ count }}</span>
+            </div>
+            <div v-if="!Object.keys(admin.analytics.bookingsByStatus).length" class="font-body-sm text-on-surface-variant">No bookings yet.</div>
+          </div>
+          <div class="bg-surface-container-high p-5 rounded-2xl border border-outline-variant flex flex-col gap-3">
+            <h3 class="font-bold text-on-surface">Volunteer Hours</h3>
+            <div class="flex items-center justify-between"><span class="font-body-sm text-on-surface-variant">Total logs</span><span class="font-mono-data font-bold">{{ admin.analytics.hourStats.total }}</span></div>
+            <div class="flex items-center justify-between"><span class="font-body-sm text-secondary">Verified</span><span class="font-mono-data font-bold text-secondary">{{ admin.analytics.hourStats.verified }}</span></div>
+            <div class="flex items-center justify-between"><span class="font-body-sm text-error">Pending</span><span class="font-mono-data font-bold text-error">{{ admin.analytics.hourStats.pending }}</span></div>
+          </div>
+          <div class="bg-surface-container-high p-5 rounded-2xl border border-outline-variant flex flex-col gap-3">
+            <h3 class="font-bold text-on-surface">Revenue Trend (Last 6 Months)</h3>
+            <div class="flex flex-col gap-2">
+              <div v-for="m in admin.analytics.revenueByMonth" :key="m.month" class="flex flex-col gap-1">
+                <div class="flex justify-between text-xs"><span class="text-on-surface-variant">{{ m.month }}</span><span class="font-mono-data text-on-surface">{{ formatMoney(m.grossCents) }} · {{ m.bookings }} bookings</span></div>
+                <div class="h-2 rounded bg-surface-container-low overflow-hidden border border-outline-variant/40"><div class="h-full bg-primary" :style="{ width: (m.grossCents / maxMonthGross * 100) + '%' }"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top providers + Recent activity -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-surface-container-high p-5 rounded-2xl border border-outline-variant flex flex-col gap-3">
+            <h3 class="font-bold text-on-surface">Top Providers by Revenue</h3>
+            <div v-if="admin.analytics.topProviders.length" class="flex flex-col gap-2">
+              <div v-for="p in admin.analytics.topProviders" :key="p.providerId" class="flex flex-col gap-1">
+                <div class="flex justify-between text-sm"><span class="font-bold text-on-surface">{{ p.displayName }}</span><span class="font-mono-data text-primary">{{ formatMoney(p.revenueCents) }} · {{ p.bookings }} jobs</span></div>
+                <div class="h-1.5 rounded bg-surface-container-low overflow-hidden"><div class="h-full bg-secondary" :style="{ width: (p.revenueCents / maxProviderRevenue * 100) + '%' }"></div></div>
+              </div>
+            </div>
+            <div v-else class="font-body-sm text-on-surface-variant">No completed bookings yet.</div>
+          </div>
+          <div class="bg-surface-container-high p-5 rounded-2xl border border-outline-variant flex flex-col gap-3">
+            <h3 class="font-bold text-on-surface">Recent Activity</h3>
+            <div v-if="admin.analytics.recentActivity.length" class="flex flex-col gap-2 max-h-[320px] overflow-auto pr-1">
+              <div v-for="a in admin.analytics.recentActivity" :key="a.id" class="flex justify-between gap-3 py-2 border-b border-outline-variant/30 last:border-0">
+                <span class="font-body-sm text-on-surface text-sm leading-tight">{{ a.title }}</span>
+                <span class="font-label-caps text-[10px] uppercase shrink-0" :class="a.status==='COMPLETED' || a.status==='VERIFIED' ? 'text-secondary' : a.status==='PENDING' ? 'text-error' : 'text-primary'">{{ a.status }}</span>
+              </div>
+            </div>
+            <div v-else class="font-body-sm text-on-surface-variant">No activity yet.</div>
+            <p class="font-body-sm text-on-surface-variant text-xs mt-1">Latest bookings + hour logs merged</p>
+          </div>
         </div>
       </section>
 

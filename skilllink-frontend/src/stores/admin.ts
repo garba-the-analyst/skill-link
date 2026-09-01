@@ -26,6 +26,19 @@ export interface AdminStats {
   opportunityCount: number;
 }
 
+export interface AdminAnalytics {
+  totalUsers: number;
+  totalGrossCents: number;
+  totalFeesCents: number;
+  totalNetCents: number;
+  escrowHeldCents: number;
+  bookingsByStatus: Record<string, number>;
+  revenueByMonth: Array<{ month: string; bookings: number; grossCents: number; feesCents: number }>;
+  topProviders: Array<{ providerId: string; displayName: string; bookings: number; revenueCents: number }>;
+  recentActivity: Array<{ type: 'booking' | 'hour_log'; id: string; title: string; amountCents: number | null; status: string; createdAt: string }>;
+  hourStats: { total: number; verified: number; pending: number };
+}
+
 export interface PendingHourLog {
   id: string;
   hoursLogged: number;
@@ -41,6 +54,7 @@ export const useAdminStore = defineStore('admin', () => {
   const bookings = ref<Booking[]>([]);
   const stats = ref<AdminStats | null>(null);
   const pendingHourLogs = ref<PendingHourLog[]>([]);
+  const analytics = ref<AdminAnalytics | null>(null);
 
   async function fetchUsers() {
     const { data } = await client.get('/admin/users');
@@ -62,9 +76,14 @@ export const useAdminStore = defineStore('admin', () => {
     pendingHourLogs.value = data;
   }
 
+  async function fetchAnalytics() {
+    const { data } = await client.get('/admin/analytics');
+    analytics.value = data;
+  }
+
   // Loads everything the dashboard needs in one call.
   async function fetchAll() {
-    await Promise.all([fetchUsers(), fetchBookings(), fetchStats(), fetchPendingHourLogs()]);
+    await Promise.all([fetchUsers(), fetchBookings(), fetchStats(), fetchPendingHourLogs(), fetchAnalytics()]);
   }
 
   async function verifyHourLog(logId: string) {
@@ -74,5 +93,5 @@ export const useAdminStore = defineStore('admin', () => {
     if (stats.value) stats.value.pendingHourLogCount -= 1;
   }
 
-  return { users, bookings, stats, pendingHourLogs, fetchUsers, fetchBookings, fetchStats, fetchPendingHourLogs, fetchAll, verifyHourLog };
+  return { users, bookings, stats, pendingHourLogs, analytics, fetchUsers, fetchBookings, fetchStats, fetchPendingHourLogs, fetchAnalytics, fetchAll, verifyHourLog };
 });

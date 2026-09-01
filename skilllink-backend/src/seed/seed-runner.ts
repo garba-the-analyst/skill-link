@@ -272,6 +272,8 @@ export async function runSeed(prisma: PrismaClient): Promise<string> {
   });
 
   // 2. The 8 professionals, each with a live service listing
+  // malik@newgate.test is promoted to SUPER_ADMIN on request so the primary tutor account can access the Admin Console without needing the generic admin@skilllink.demo login.
+  const ADMIN_PROMOTED_EMAILS = new Set(['malik@newgate.test']);
   const pros = new Map<string, { user: Awaited<ReturnType<typeof prisma.user.create>>; listingId: string }>();
   for (const p of PROFESSIONALS) {
     const user = await prisma.user.create({
@@ -279,7 +281,7 @@ export async function runSeed(prisma: PrismaClient): Promise<string> {
         email: p.email,
         passwordHash: defaultPasswordHash,
         displayName: p.displayName,
-        role: 'MEMBER',
+        role: ADMIN_PROMOTED_EMAILS.has(p.email) ? 'SUPER_ADMIN' : 'MEMBER',
         profileType: 'INDIVIDUAL',
         isPaidProvider: true,
         isVolunteer: p.isVolunteer ?? false,
@@ -515,6 +517,113 @@ export async function runSeed(prisma: PrismaClient): Promise<string> {
     },
   });
 
+  // 8. Extended transaction history — spread over the last 28 days so
+  // analytics have real trends (revenue, bookingsByStatus, activity).
+  const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+  const extraCompleted: Array<{ listing: string; student: string; provider: string; amount: number; fee: number; ago: number }> = [
+    { listing: 'webdev', student: 'precious', provider: 'webdev', amount: 180000, fee: 18000, ago: 26 },
+    { listing: 'photographer', student: 'suleiman', provider: 'photographer', amount: 400000, fee: 40000, ago: 21 },
+    { listing: 'tailor', student: 'tunde', provider: 'tailor', amount: 250000, fee: 25000, ago: 18 },
+    { listing: 'designer', student: 'precious', provider: 'designer', amount: 220000, fee: 22000, ago: 14 },
+    { listing: 'mathTutor', student: 'musa', provider: 'mathTutor', amount: 120000, fee: 12000, ago: 10 },
+    { listing: 'artisan', student: 'grace', provider: 'artisan', amount: 320000, fee: 32000, ago: 6 },
+    { listing: 'webdev', student: 'suleiman', provider: 'webdev', amount: 180000, fee: 18000, ago: 3 },
+    { listing: 'tailor', student: 'grace', provider: 'tailor', amount: 270000, fee: 27000, ago: 1 },
+  ];
+  for (const b of extraCompleted) {
+    const p = pro(b.listing);
+    // Use the specified provider if different from the listing owner (e.g. webdev listing owned by yusuf but provider could be yusuf)
+    const providerId = pro(b.provider).user.id;
+    const booking = await prisma.booking.create({
+      data: {
+        listingId: p.listingId,
+        studentId: normal(b.student).id,
+        providerId,
+        status: 'COMPLETED',
+        amountCents: b.amount,
+        escrowFeeCents: b.fee,
+        createdAt: daysAgo(b.ago + 1),
+        completedAt: daysAgo(b.ago),
+        scheduledFor: daysAgo(b.ago + 2),
+      },
+    });
+    const net = b.amount - b.fee;
+    await prisma.user.update({
+      where: { id: providerId },
+      data: { availableCents: { increment: net }, totalEarnedCents: { increment: net }, accumulatedPoints: { increment: 50 } },
+    });
+  }
+
+  // Extra in-flight bookings to make Active counts meaningful
+  const extraActive: Array<{ listing: string; student: string; provider: string; status: string; amount: number; fee: number; ago: number }> = [
+    { listing: 'photographer', student: 'precious', provider: 'photographer', status: 'LOCKED', amount: 400000, fee: 40000, ago: 2 },
+    { listing: 'mathTutor', student: 'tunde', provider: 'mathTutor', status: 'LOCKED', amount: 120000, fee: 12000, ago: 1 },
+    { listing: 'webdev', student: 'grace', provider: 'webdev', status: 'IN_PROGRESS', amount: 180000, fee: 18000, ago: 4 },
+    { listing: 'tailor', student: 'suleiman', provider: 'tailor', status: 'IN_PROGRESS', amount: 250000, fee: 25000, ago: 2 },
+  ];
+  for (const b of extraActive) {
+    await prisma.booking.create({
+      data: {
+        listingId: pro(b.listing).listingId,
+        studentId: normal(b.student).id,
+        providerId: pro(b.provider).user.id,
+        status: b.status as any,
+        amountCents: b.amount,
+        escrowFeeCents: b.fee,
+        createdAt: daysAgo(b.ago),
+        scheduledFor: daysAgo(-1),
+      },
+    });
+  }
+
+  // 9. Extra volunteer activity — applications, hour logs and certificates
+  const extraHourLogs: Array<{ opp: string; volunteer: string; hours: number; verified: boolean; ago: number }> = [
+    { opp: 'forest', volunteer: 'civicVolunteer', hours: 6, verified: true, ago: 20 },
+    { opp: 'river', volunteer: 'tutor', hours: 5, verified: true, ago: 15 },
+    { opp: 'recycling', volunteer: 'zainab', hours: 3, verified: true, ago: 12 },
+    { opp: 'techMentorship', volunteer: 'ibrahim', hours: 4, verified: false, ago: 5 },
+    { opp: 'river', volunteer: 'precious', hours: 5, verified: false, ago: 4 },
+    { opp: 'recycling', volunteer: 'grace', hours: 3, verified: false, ago: 2 },
+    { opp: 'forest', volunteer: 'precious', hours: 4, verified: false, ago: 1 },
+  ];
+  const oppMap: Record<string, string> = { forest: forestOpportunity.id, techMentorship: techMentorshipOpportunity.id, river: riverCleanupOpportunity.id, recycling: recyclingOpportunity.id };
+  for (const l of extraHourLogs) {
+    const log = await prisma.volunteerHourLog.create({
+      data: {
+        opportunityId: oppMap[l.opp],
+        volunteerId: normal(l.volunteer)?.id ?? pro(l.volunteer)?.user.id ?? normal('civicVolunteer').id,
+        hoursLogged: l.hours,
+        isVerified: l.verified,
+        verifiedById: l.verified ? superAdmin.id : null,
+        verifiedAt: l.verified ? daysAgo(l.ago) : null,
+        createdAt: daysAgo(l.ago + 1),
+      },
+    });
+    if (l.verified) {
+      const vid = log.volunteerId;
+      await prisma.user.update({ where: { id: vid }, data: { totalLoggedHours: { increment: l.hours } } });
+    }
+  }
+
+  // Volunteer applications (some accepted)
+  await prisma.volunteerApplication.createMany({
+    data: [
+      { opportunityId: forestOpportunity.id, volunteerId: normal('zainab').id },
+      { opportunityId: riverCleanupOpportunity.id, volunteerId: normal('ibrahim').id },
+      { opportunityId: techMentorshipOpportunity.id, volunteerId: normal('ngozi').id },
+      { opportunityId: recyclingOpportunity.id, volunteerId: normal('precious').id },
+      { opportunityId: forestOpportunity.id, volunteerId: normal('precious').id },
+      { opportunityId: techMentorshipOpportunity.id, volunteerId: pro('mathTutor').user.id },
+    ],
+  });
+
+  // Another certificate for a now-verified volunteer
+  const halima = await prisma.user.findUnique({ where: { id: normal('halima').id } });
+  if (halima) {
+    const halimaHash = crypto.createHash('sha256').update(`${halima.id}-${halima.totalLoggedHours}-${CERT_SIGNING_SECRET}`).digest('hex');
+    await prisma.volunteerCertificate.create({ data: { volunteerId: halima.id, totalHoursSigned: halima.totalLoggedHours, issueHash: halimaHash } }).catch(() => {});
+  }
+
   record('\n================================================================');
   record('  SKILLLINK MARKETPLACE SEEDED SUCCESSFULLY');
   record('================================================================');
@@ -522,11 +631,12 @@ export async function runSeed(prisma: PrismaClient): Promise<string> {
   if (!process.env.SEED_ADMIN_EMAIL || !process.env.SEED_ADMIN_PASSWORD) {
     record('  (demo credentials — set SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD to override)');
   }
+  record(`- Promoted Super Admin     : ${pro('tutor').user.email} / ${DEMO_PASSWORD} (Abdulmalik Ayomide)`);
   record(`- Everyone else logs in with the password: ${DEMO_PASSWORD}`);
   record(`- 8 professionals seeded, each with a live listing (e.g. ${pro('tutor').user.email})`);
   record(`- 12 everyday users seeded (2 organizations, volunteers, and plain members)`);
-  record('- 4 volunteer opportunities posted; 2 hour logs verified, 3 still pending review');
-  record('- 4 bookings seeded, one at each escrow stage:');
+  record('- 4 volunteer opportunities posted; 5+ hour logs verified, 7+ still pending review');
+  record('- 16 bookings seeded across all escrow stages (including 8 historical COMPLETED for revenue trends)');
   record(`    RELEASE_READY booking OTP (login as ${normal('musa').email}): ${demoOtp}`);
   record('================================================================\n');
 
